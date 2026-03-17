@@ -62,10 +62,7 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const result = register(name, email, password, role);
+    const result = await register(name, email, password, role);
     
     if (result.success) {
       toast({
