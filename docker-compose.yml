@@ -2,17 +2,12 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
-      - "3001:3001"
+      - "3001:3000"
     environment:
-      - DATABASE_URL=file:/app/prisma/dev.db
+      - DATABASE_URL=file:./dev.db
       - NODE_ENV=production
     volumes:
       - ./prisma/dev.db:/app/prisma/dev.db
     restart: always
-
-volumes:
-  db_data:
