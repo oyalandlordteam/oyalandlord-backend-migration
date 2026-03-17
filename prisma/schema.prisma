@@ -58,8 +58,8 @@ model Property {
   images            String   // Stored as JSON string
   featured          Boolean  @default(false)
   available         Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   amenities         String   @default("[]") // JSON
   security          String   @default("[]") // JSON
   parking           String   @default("[]") // JSON
