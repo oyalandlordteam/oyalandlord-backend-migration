@@ -1,174 +1,224 @@
-'use client';
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  User, 
-  Property, 
-  InspectionRequest, 
-  InspectionStatus,
-  SearchFilters, 
-  UserRole,
-  DashboardStats,
-  BreakdownItem,
-  RentalAgreement,
-  RentalStatus,
-  Bid,
-  Message,
-  MessageReply,
-  Notification,
-  PropertyReport,
-  Announcement,
-  Favorite,
-} from './types';
-import { 
-  mockUsers, 
-  mockProperties, 
-  mockInspectionRequests, 
-  mockRentalAgreements,
-  mockBids,
-  mockMessages,
-  mockNotifications,
-  mockReports,
-  mockAnnouncements,
-  mockFavorites,
-  STORAGE_KEYS, 
-  generateId,
-  generateReceiptNumber,
-  generatePropertyCode,
-} from './mock-data';
-import { AppSettings, ContentManagement, SolicitorComment } from './types';
+
+// ============ TYPES ============
+
+export type UserRole = 'tenant' | 'landlord' | 'solicitor' | 'admin';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  isDeleted?: boolean;
+  deletionReason?: string;
+}
+
+export interface Property {
+  id: string;
+  propertyCode: string;
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  images: string[];
+  type: 'flat' | 'house' | 'self-contain' | 'mini-flat';
+  bedrooms: number;
+  furnished: boolean;
+  amenities: string[];
+  security: string[];
+  parking: string[];
+  outdoorSpace: string[];
+  petPolicy: 'allowed' | 'not_allowed' | 'case_by_case';
+  furnishing: 'furnished' | 'unfurnished' | 'semi-furnished';
+  breakdownItems: BreakdownItem[];
+  available: boolean;
+  landlordId: string;
+  isDeleted?: boolean;
+  deletionReason?: string;
+}
+
+export interface BreakdownItem {
+  name: string;
+  amount: number;
+}
+
+export interface Inspection {
+  id: string;
+  propertyId: string;
+  tenantId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface Rental {
+  id: string;
+  propertyId: string;
+  tenantId: string;
+  landlordId: string;
+  status: 'active' | 'completed' | 'cancelled';
+  rentAmount: number;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
+export interface Bid {
+  id: string;
+  propertyId: string;
+  tenantId: string;
+  amount: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  propertyId?: string;
+  rentalId?: string;
+  content: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'inspection' | 'rental' | 'message' | 'system';
+  read: boolean;
+  createdAt: string;
+}
+
+export interface Favorite {
+  userId: string;
+  propertyId: string;
+}
+
+export interface PropertyReport {
+  id: string;
+  propertyId: string;
+  reporterId: string;
+  reason: 'misleading' | 'unavailable' | 'scam' | 'other';
+  description?: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface SolicitorComment {
+  id: string;
+  inspectionId: string;
+  solicitorId: string;
+  comment: string;
+  createdAt: string;
+}
+
+export interface ContentManagement {
+  faq: { id: string; question: string; answer: string }[];
+  aboutUs: string;
+  termsAndConditions: string;
+}
+
+export interface AppSettings {
+  maintenanceMode: boolean;
+  defaultInspectionFee: number;
+  language: string;
+}
+
+export interface DashboardStats {
+  totalUsers: number;
+  totalTenants: number;
+  totalLandlords: number;
+  totalSolicitors: number;
+  unverifiedUsers: number;
+  totalProperties: number;
+  availableProperties: number;
+  totalInspections: number;
+  pendingInspections: number;
+  pendingReports: number;
+}
 
 // ============ AUTH STORE ============
 interface AuthState {
-  currentUser: User | null;
   users: User[];
+  currentUser: User | null;
   isInitialized: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
   initialize: () => Promise<void>;
-  getSolicitors: () => User[];
-  getUserById: (id: string) => User | undefined;
-  getAllUsers: () => User[];
-  updateUserStatus: (id: string, isActive: boolean) => Promise<boolean>;
+  register: (name: string, email: string, role: UserRole) => Promise<User | null>;
+  login: (email: string) => Promise<User | null>;
+  logout: () => void;
   verifyUser: (id: string) => Promise<boolean>;
-  deleteUser: (id: string, reason?: string) => Promise<boolean>;
-  restoreUser: (id: string) => Promise<boolean>;
-  permanentlyDeleteUser: (id: string) => Promise<boolean>;
-  getUnverifiedUsers: () => User[];
+  deleteUser: (id: string, reason: string) => Promise<boolean>;
+  getUserById: (id: string) => User | undefined;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      currentUser: null,
       users: [],
+      currentUser: null,
       isInitialized: false,
 
       initialize: async () => {
         if (typeof window === 'undefined') return;
         
         try {
-          const response = await fetch('/api/users');
-          const users = await response.json();
-          
+          const res = await fetch('/api/users');
+          if (!res.ok) throw new Error('Failed to fetch');
+          const users = await res.json();
           set({ users, isInitialized: true });
-          
-          // Sync currentUser from localStorage but verify against DB
-          const storedCurrentUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-          if (storedCurrentUser) {
-            const parsed = JSON.parse(storedCurrentUser);
-            const userInDb = users.find((u: User) => u.id === parsed.id);
-            if (userInDb && userInDb.isActive) {
-              set({ currentUser: userInDb });
-            } else {
-              set({ currentUser: null });
-              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-            }
-          }
         } catch (error) {
           console.error('Failed to initialize auth store:', error);
           set({ isInitialized: true });
         }
       },
 
-      login: async (email, password) => {
-        try {
-          const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password }),
-          });
-          
-          const result = await response.json();
-          if (result.success) {
-            set({ currentUser: result.user });
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(result.user));
-            return { success: true, message: 'Login successful' };
-          }
-          return { success: false, message: result.message || 'Login failed' };
-        } catch (error) {
-          return { success: false, message: 'Server connection error' };
-        }
-      },
-
-      register: async (name, email, password, role) => {
-        try {
-          const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            body: JSON.stringify({ name, email, password, role }),
-          });
-          
-          const result = await response.json();
-          if (result.success) {
-            set({ currentUser: result.user });
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(result.user));
-            // Refresh user list
-            const userListRes = await fetch('/api/users');
-            const users = await userListRes.json();
-            set({ users });
-            return { success: true, message: 'Registration successful' };
-          }
-          return { success: false, message: result.message || 'Registration failed' };
-        } catch (error) {
-          return { success: false, message: 'Server connection error' };
-        }
-      },
-
-      logout: () => {
-        set({ currentUser: null });
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-      },
-
-      getSolicitors: () => {
-        return get().users.filter(u => u.role === 'solicitor' && u.isActive);
-      },
-
-      getUserById: (id) => {
-        return get().users.find(u => u.id === id);
-      },
-
-      getAllUsers: () => {
-        return get().users;
-      },
-
-      updateUserStatus: async (id, isActive) => {
+      register: async (name, email, role) => {
         try {
           const res = await fetch('/api/users', {
-            method: 'PATCH',
-            body: JSON.stringify({ id, isActive }),
+            method: 'POST',
+            body: JSON.stringify({ name, email, role }),
           });
           if (res.ok) {
-            const updatedUser = await res.json();
-            const users = get().users.map(u => u.id === id ? { ...u, isActive } : u);
-            set({ users });
-            return true;
+            const newUser = await res.json();
+            set({ users: [...get().users, newUser], currentUser: newUser });
+            return newUser;
           }
-          return false;
+          return null;
         } catch (error) {
-          return false;
+          return null;
         }
       },
+
+      login: async (email) => {
+        try {
+          const res = await fetch(`/api/users?email=${email}`);
+          if (res.ok) {
+            const user = await res.json();
+            set({ currentUser: user });
+            return user;
+          }
+          return null;
+        } catch (error) {
+          return null;
+        }
+      },
+
+      logout: () => set({ currentUser: null }),
 
       verifyUser: async (id) => {
         try {
@@ -177,8 +227,12 @@ export const useAuthStore = create<AuthState>()(
             body: JSON.stringify({ id, isVerified: true }),
           });
           if (res.ok) {
-            const users = get().users.map(u => u.id === id ? { ...u, isVerified: true } : u);
+            const updated = await res.json();
+            const users = get().users.map(u => u.id === id ? updated : u);
             set({ users });
+            if (get().currentUser?.id === id) {
+              set({ currentUser: updated });
+            }
             return true;
           }
           return false;
@@ -189,28 +243,13 @@ export const useAuthStore = create<AuthState>()(
 
       deleteUser: async (id, reason) => {
         try {
-          const res = await fetch(`/api/users?id=${id}`, {
-            method: 'DELETE',
-          });
-          if (res.ok) {
-            const users = get().users.map(u => u.id === id ? { ...u, isDeleted: true, deletionReason: reason } : u);
-            set({ users });
-            return true;
-          }
-          return false;
-        } catch (error) {
-          return false;
-        }
-      },
-
-      restoreUser: async (id) => {
-        try {
           const res = await fetch('/api/users', {
             method: 'PATCH',
-            body: JSON.stringify({ id, isDeleted: false }),
+            body: JSON.stringify({ id, isDeleted: true, deletionReason: reason, isActive: false }),
           });
           if (res.ok) {
-            const users = get().users.map(u => u.id === id ? { ...u, isDeleted: false } : u);
+            const updated = await res.json();
+            const users = get().users.map(u => u.id === id ? updated : u);
             set({ users });
             return true;
           }
@@ -220,27 +259,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      permanentlyDeleteUser: async (id) => {
-        try {
-          const res = await fetch(`/api/users?id=${id}&permanent=true`, {
-            method: 'DELETE',
-          });
-          if (res.ok) {
-            const users = get().users.filter(u => u.id !== id);
-            set({ users });
-            return true;
-          }
-          return false;
-        } catch (error) {
-          return false;
-        }
-      },
-
-      getUnverifiedUsers: () => {
-        return get().users.filter(u => 
-          (u.role === 'landlord' || u.role === 'solicitor') && !u.isVerified
-        );
-      },
+      getUserById: (id) => get().users.find(u => u.id === id),
     }),
     {
       name: 'oyalandlord-auth',
@@ -252,142 +271,59 @@ export const useAuthStore = create<AuthState>()(
 // ============ PROPERTY STORE ============
 interface PropertyState {
   properties: Property[];
-  filters: SearchFilters;
   isInitialized: boolean;
   initialize: () => Promise<void>;
-  setFilters: (filters: SearchFilters) => void;
-  getFilteredProperties: () => Property[];
+  getPropertyByCode: (code: string) => Property | undefined;
   getPropertyById: (id: string) => Property | undefined;
-  getPropertiesByLandlord: (landlordId: string) => Property[];
-  getPropertiesBySolicitor: (solicitorId: string) => Property[];
-  addProperty: (propertyData: Omit<Property, 'id' | 'landlordId' | 'createdAt' | 'updatedAt'>, landlordId: string) => Promise<Property | null>;
-  updateProperty: (id: string, updates: Partial<Omit<Property, 'id' | 'landlordId' | 'createdAt'>>) => Promise<Property | null>;
-  deleteProperty: (id: string, reason?: string) => Promise<boolean>;
+  getLandlordProperties: (landlordId: string) => Property[];
+  createProperty: (data: Omit<Property, 'id' | 'propertyCode'>) => Promise<Property | null>;
+  updateProperty: (id: string, updates: Partial<Property>) => Promise<boolean>;
+  deleteProperty: (id: string, reason: string) => Promise<boolean>;
   restoreProperty: (id: string) => Promise<boolean>;
   permanentlyDeleteProperty: (id: string) => Promise<boolean>;
-  toggleAvailability: (id: string) => Promise<boolean>;
-  toggleFeatured: (id: string) => Promise<boolean>;
-  duplicateProperty: (id: string) => Promise<Property | null>;
-  getAllProperties: () => Property[];
   getDeletedProperties: () => Property[];
-  getStats: () => { total: number; available: number };
-  incrementViewCount: (id: string) => Promise<void>;
-  getPropertyByCode: (code: string) => Property | undefined;
 }
 
 export const usePropertyStore = create<PropertyState>()(
   persist(
     (set, get) => ({
       properties: [],
-      filters: {
-        location: '',
-        minPrice: undefined,
-        maxPrice: undefined,
-        type: 'all',
-        bedrooms: 'all',
-      },
       isInitialized: false,
 
       initialize: async () => {
         if (typeof window === 'undefined') return;
         
         try {
-          const response = await fetch('/api/properties');
-          if (!response.ok) throw new Error('Failed to fetch');
-          const properties = await response.json();
-          if (Array.isArray(properties)) {
-            set({ properties, isInitialized: true });
-          } else {
-            set({ properties: [], isInitialized: true });
-          }
+          const res = await fetch('/api/properties');
+          if (!res.ok) throw new Error('Failed to fetch');
+          const properties = await res.json();
+          set({ properties, isInitialized: true });
         } catch (error) {
           console.error('Failed to initialize property store:', error);
-          set({ properties: [], isInitialized: true });
+          set({ isInitialized: true });
         }
       },
 
-      setFilters: (filters) => {
-        set({ filters });
-      },
-
-      getFilteredProperties: () => {
-        const { properties, filters } = get();
-        
-        return properties.filter(p => {
-          if (p.isDeleted) return false;
-          if (!p.available) return false;
-          
-          if (filters.location && !p.location.toLowerCase().includes(filters.location.toLowerCase())) {
-            return false;
-          }
-          
-          if (filters.minPrice !== undefined && p.price < filters.minPrice) {
-            return false;
-          }
-          
-          if (filters.maxPrice !== undefined && p.price > filters.maxPrice) {
-            return false;
-          }
-          
-          if (filters.type !== 'all' && p.type !== filters.type) {
-            return false;
-          }
-          
-          if (filters.bedrooms !== 'all' && p.bedrooms !== filters.bedrooms) {
-            return false;
-          }
-
-          if (filters.nearbyAmenities && filters.nearbyAmenities.length > 0) {
-            const hasAllAmenities = filters.nearbyAmenities.every(amenity => 
-              p.nearbyAmenities?.includes(amenity)
-            );
-            if (!hasAllAmenities) return false;
-          }
-
-          if (filters.powerSupply && filters.powerSupply.length > 0) {
-            const hasAnyPower = filters.powerSupply.some(power => 
-              p.powerSupply?.includes(power)
-            );
-            if (!hasAnyPower) return false;
-          }
-
-          if (filters.waterSupply && filters.waterSupply.length > 0) {
-            const hasAnyWater = filters.waterSupply.some(water => 
-              p.waterSupply?.includes(water)
-            );
-            if (!hasAnyWater) return false;
-          }
-          
-          return true;
-        });
+      getPropertyByCode: (code) => {
+        return get().properties.find(p => p.propertyCode.toLowerCase() === code.toLowerCase());
       },
 
       getPropertyById: (id) => {
         return get().properties.find(p => p.id === id);
       },
 
-      getPropertiesByLandlord: (landlordId) => {
+      getLandlordProperties: (landlordId) => {
         return get().properties.filter(p => p.landlordId === landlordId && !p.isDeleted);
       },
 
-      getPropertiesBySolicitor: (solicitorId) => {
-        return get().properties.filter(p => p.solicitorId === solicitorId && !p.isDeleted);
-      },
-
-      getDeletedProperties: () => {
-        return get().properties.filter(p => p.isDeleted);
-      },
-
-      addProperty: async (propertyData, landlordId) => {
+      createProperty: async (data) => {
         try {
-          const propertyCode = propertyData.propertyCode || generatePropertyCode();
-          const response = await fetch('/api/properties', {
+          const res = await fetch('/api/properties', {
             method: 'POST',
-            body: JSON.stringify({ ...propertyData, landlordId, propertyCode }),
+            body: JSON.stringify(data),
           });
-          
-          if (response.ok) {
-            const newProperty = await response.json();
+          if (res.ok) {
+            const newProperty = await res.json();
             set({ properties: [...get().properties, newProperty] });
             return newProperty;
           }
@@ -399,32 +335,31 @@ export const usePropertyStore = create<PropertyState>()(
 
       updateProperty: async (id, updates) => {
         try {
-          const response = await fetch('/api/properties', {
-            method: 'PATCH', // I'll update the API to handle PATCH with ID in body or use a dynamic route
+          const res = await fetch('/api/properties', {
+            method: 'PATCH',
             body: JSON.stringify({ id, ...updates }),
           });
-          
-          if (response.ok) {
-            const updatedProperty = await response.json();
-            const properties = get().properties.map(p => p.id === id ? updatedProperty : p);
+          if (res.ok) {
+            const updated = await res.json();
+            const properties = get().properties.map(p => p.id === id ? updated : p);
             set({ properties });
-            return updatedProperty;
+            return true;
           }
-          return null;
+          return false;
         } catch (error) {
-          return null;
+          return false;
         }
       },
 
       deleteProperty: async (id, reason) => {
         try {
-          const res = await fetch(`/api/properties?id=${id}`, {
-            method: 'DELETE',
+          const res = await fetch('/api/properties', {
+            method: 'PATCH',
+            body: JSON.stringify({ id, isDeleted: true, deletionReason: reason, available: false }),
           });
           if (res.ok) {
-            const properties = get().properties.map(p => 
-              p.id === id ? { ...p, isDeleted: true, deletionReason: reason } : p
-            );
+            const updated = await res.json();
+            const properties = get().properties.map(p => p.id === id ? updated : p);
             set({ properties });
             return true;
           }
@@ -438,12 +373,11 @@ export const usePropertyStore = create<PropertyState>()(
         try {
           const res = await fetch('/api/properties', {
             method: 'PATCH',
-            body: JSON.stringify({ id, isDeleted: false }),
+            body: JSON.stringify({ id, isDeleted: false, deletionReason: null, available: true }),
           });
           if (res.ok) {
-            const properties = get().properties.map(p => 
-              p.id === id ? { ...p, isDeleted: false, deletionReason: undefined } : p
-            );
+            const updated = await res.json();
+            const properties = get().properties.map(p => p.id === id ? updated : p);
             set({ properties });
             return true;
           }
@@ -455,7 +389,7 @@ export const usePropertyStore = create<PropertyState>()(
 
       permanentlyDeleteProperty: async (id) => {
         try {
-          const res = await fetch(`/api/properties?id=${id}&permanent=true`, {
+          const res = await fetch(`/api/properties?id=${id}`, {
             method: 'DELETE',
           });
           if (res.ok) {
@@ -468,158 +402,72 @@ export const usePropertyStore = create<PropertyState>()(
         }
       },
 
-      toggleAvailability: async (id) => {
-        const property = get().properties.find(p => p.id === id);
-        if (!property) return false;
-        return !!(await get().updateProperty(id, { available: !property.available }));
-      },
-
-      toggleFeatured: async (id) => {
-        const property = get().properties.find(p => p.id === id);
-        if (!property) return false;
-        return !!(await get().updateProperty(id, { featured: !property.featured }));
-      },
-
-      duplicateProperty: async (id) => {
-        const property = get().properties.find(p => p.id === id);
-        if (!property) return null;
-        
-        const { id: _id, propertyCode: _pc, createdAt: _ca, updatedAt: _ua, ...rest } = property;
-        const duplicatedData = {
-          ...rest,
-          title: `${rest.title} (Copy)`,
-          available: false,
-        };
-        
-        return get().addProperty(duplicatedData as unknown as Omit<Property, "id" | "landlordId" | "createdAt" | "updatedAt">, property.landlordId);
-      },
-
-      getAllProperties: () => {
-        return get().properties.filter(p => !p.isDeleted);
-      },
-
-      getStats: () => {
-        const properties = get().properties;
-        return {
-          total: properties.length,
-          available: properties.filter(p => p.available).length,
-        };
-      },
-
-      incrementViewCount: async (id) => {
-        const property = get().properties.find(p => p.id === id);
-        if (!property) return;
-        await get().updateProperty(id, { viewCount: (property.viewCount || 0) + 1 });
-      },
-      
-      getPropertyByCode: (code) => {
-        if (!code) return undefined;
-        const normalizedCode = code.trim().toUpperCase();
-        return get().properties.find(p => p.propertyCode === normalizedCode || p.propertyCode === `OYA-${normalizedCode}`);
+      getDeletedProperties: () => {
+        return get().properties.filter(p => p.isDeleted);
       },
     }),
     {
       name: 'oyalandlord-properties',
-      partialize: (state) => ({ filters: state.filters }),
     }
   )
 );
 
 // ============ INSPECTION STORE ============
 interface InspectionState {
-  inspectionRequests: InspectionRequest[];
+  inspections: Inspection[];
   isInitialized: boolean;
   initialize: () => Promise<void>;
-  getInspectionsByTenant: (tenantId: string) => InspectionRequest[];
-  getInspectionsBySolicitor: (solicitorId: string) => InspectionRequest[];
-  getInspectionsByLandlord: (landlordId: string) => InspectionRequest[];
-  getPendingInspectionsBySolicitor: (solicitorId: string) => InspectionRequest[];
-  getPendingInspectionsByLandlord: (landlordId: string) => InspectionRequest[];
-  createInspectionRequest: (propertyId: string, tenantId: string, landlordId: string, date: string, time: string, notes?: string) => Promise<InspectionRequest | null>;
-  updateInspectionStatus: (id: string, status: InspectionStatus) => Promise<boolean>;
-  getInspectionById: (id: string) => InspectionRequest | undefined;
-  getAllInspections: () => InspectionRequest[];
-  deleteInspection: (id: string) => Promise<boolean>;
+  getInspectionsByProperty: (propertyId: string) => Inspection[];
+  getInspectionsByTenant: (tenantId: string) => Inspection[];
+  getInspectionsByLandlord: (landlordId: string) => Inspection[];
+  requestInspection: (propertyId: string, tenantId: string) => Promise<Inspection | null>;
+  updateInspectionStatus: (id: string, status: 'approved' | 'rejected') => Promise<boolean>;
   getStats: () => { total: number; pending: number; approved: number; rejected: number };
 }
 
 export const useInspectionStore = create<InspectionState>()(
   persist(
     (set, get) => ({
-      inspectionRequests: [],
+      inspections: [],
       isInitialized: false,
 
       initialize: async () => {
         if (typeof window === 'undefined') return;
         
-        const currentUser = useAuthStore.getState().currentUser;
-        if (!currentUser) {
-          set({ inspectionRequests: [], isInitialized: true });
-          return;
-        }
-
         try {
-          const res = await fetch(`/api/inspections?userId=${currentUser.id}&role=${currentUser.role}`);
+          const res = await fetch('/api/inspections');
           if (!res.ok) throw new Error('Failed to fetch');
           const inspections = await res.json();
-          if (Array.isArray(inspections)) {
-            set({ inspectionRequests: inspections, isInitialized: true });
-          } else {
-            set({ inspectionRequests: [], isInitialized: true });
-          }
+          set({ inspections, isInitialized: true });
         } catch (error) {
           console.error('Failed to initialize inspection store:', error);
-          set({ inspectionRequests: [], isInitialized: true });
+          set({ isInitialized: true });
         }
+      },
+
+      getInspectionsByProperty: (propertyId) => {
+        return get().inspections.filter(i => i.propertyId === propertyId);
       },
 
       getInspectionsByTenant: (tenantId) => {
-        return get().inspectionRequests.filter(i => i.tenantId === tenantId);
-      },
-
-      getInspectionsBySolicitor: (solicitorId) => {
-        const properties = usePropertyStore.getState().properties;
-        const solicitorPropertyIds = properties
-          .filter(p => p.solicitorId === solicitorId)
-          .map(p => p.id);
-        
-        return get().inspectionRequests.filter(i => solicitorPropertyIds.includes(i.propertyId));
+        return get().inspections.filter(i => i.tenantId === tenantId);
       },
 
       getInspectionsByLandlord: (landlordId) => {
-        const properties = usePropertyStore.getState().properties;
-        const landlordPropertyIds = properties
-          .filter(p => p.landlordId === landlordId)
-          .map(p => p.id);
-        
-        return get().inspectionRequests.filter(i => landlordPropertyIds.includes(i.propertyId));
+        const properties = usePropertyStore.getState().getLandlordProperties(landlordId);
+        const propertyIds = properties.map(p => p.id);
+        return get().inspections.filter(i => propertyIds.includes(i.propertyId));
       },
 
-      getPendingInspectionsBySolicitor: (solicitorId) => {
-        return get().getInspectionsBySolicitor(solicitorId).filter(i => i.status === 'pending');
-      },
-
-      getPendingInspectionsByLandlord: (landlordId) => {
-        const { inspectionRequests } = get();
-        const properties = usePropertyStore.getState().properties;
-        
-        return inspectionRequests.filter(i => {
-          const property = properties.find(p => p.id === i.propertyId);
-          return property?.landlordId === landlordId && 
-                 !property.solicitorId && 
-                 i.status === 'pending';
-        });
-      },
-
-      createInspectionRequest: async (propertyId, tenantId, landlordId, date, time, notes) => {
+      requestInspection: async (propertyId, tenantId) => {
         try {
           const res = await fetch('/api/inspections', {
             method: 'POST',
-            body: JSON.stringify({ propertyId, tenantId, landlordId, date, time, notes }),
+            body: JSON.stringify({ propertyId, tenantId }),
           });
           if (res.ok) {
             const newInspection = await res.json();
-            set({ inspectionRequests: [...get().inspectionRequests, newInspection] });
+            set({ inspections: [...get().inspections, newInspection] });
             return newInspection;
           }
           return null;
@@ -636,31 +484,8 @@ export const useInspectionStore = create<InspectionState>()(
           });
           if (res.ok) {
             const updated = await res.json();
-            const inspectionRequests = get().inspectionRequests.map(i => i.id === id ? updated : i);
-            set({ inspectionRequests });
-            return true;
-          }
-          return false;
-        } catch (error) {
-          return false;
-        }
-      },
-
-      getInspectionById: (id) => {
-        return get().inspectionRequests.find(i => i.id === id);
-      },
-
-      getAllInspections: () => {
-        return get().inspectionRequests;
-      },
-
-      deleteInspection: async (id) => {
-        try {
-          const res = await fetch(`/api/inspections?id=${id}`, {
-            method: 'DELETE',
-          });
-          if (res.ok) {
-            set({ inspectionRequests: get().inspectionRequests.filter(i => i.id !== id) });
+            const inspections = get().inspections.map(i => i.id === id ? updated : i);
+            set({ inspections });
             return true;
           }
           return false;
@@ -670,7 +495,7 @@ export const useInspectionStore = create<InspectionState>()(
       },
 
       getStats: () => {
-        const inspections = get().inspectionRequests;
+        const inspections = get().inspections;
         return {
           total: inspections.length,
           pending: inspections.filter(i => i.status === 'pending').length,
@@ -687,16 +512,14 @@ export const useInspectionStore = create<InspectionState>()(
 
 // ============ RENTAL STORE ============
 interface RentalState {
-  rentals: RentalAgreement[];
+  rentals: Rental[];
   isInitialized: boolean;
   initialize: () => Promise<void>;
-  getRentalsByTenant: (tenantId: string) => RentalAgreement[];
-  getRentalsByLandlord: (landlordId: string) => RentalAgreement[];
-  getActiveRentalsByTenant: (tenantId: string) => RentalAgreement[];
-  createRental: (data: Omit<RentalAgreement, 'id' | 'createdAt' | 'receiptNumber'>) => Promise<RentalAgreement | null>;
-  updateRentalStatus: (id: string, status: RentalStatus) => Promise<boolean>;
-  renewRental: (id: string, newEndDate: string) => Promise<RentalAgreement | null>;
-  getRentalById: (id: string) => RentalAgreement | undefined;
+  getRentalsByTenant: (tenantId: string) => Rental[];
+  getRentalsByLandlord: (landlordId: string) => Rental[];
+  createRental: (data: Omit<Rental, 'id' | 'createdAt' | 'status'>) => Promise<Rental | null>;
+  updateRentalStatus: (id: string, status: Rental['status']) => Promise<boolean>;
+  getRentalById: (id: string) => Rental | undefined;
 }
 
 export const useRentalStore = create<RentalState>()(
@@ -708,24 +531,14 @@ export const useRentalStore = create<RentalState>()(
       initialize: async () => {
         if (typeof window === 'undefined') return;
         
-        const currentUser = useAuthStore.getState().currentUser;
-        if (!currentUser) {
-          set({ rentals: [], isInitialized: true });
-          return;
-        }
-
         try {
-          const res = await fetch(`/api/rentals?userId=${currentUser.id}&role=${currentUser.role}`);
+          const res = await fetch('/api/rentals');
           if (!res.ok) throw new Error('Failed to fetch');
           const rentals = await res.json();
-          if (Array.isArray(rentals)) {
-            set({ rentals, isInitialized: true });
-          } else {
-            set({ rentals: [], isInitialized: true });
-          }
+          set({ rentals, isInitialized: true });
         } catch (error) {
           console.error('Failed to initialize rental store:', error);
-          set({ rentals: [], isInitialized: true });
+          set({ isInitialized: true });
         }
       },
 
@@ -735,10 +548,6 @@ export const useRentalStore = create<RentalState>()(
 
       getRentalsByLandlord: (landlordId) => {
         return get().rentals.filter(r => r.landlordId === landlordId);
-      },
-
-      getActiveRentalsByTenant: (tenantId) => {
-        return get().rentals.filter(r => r.tenantId === tenantId && r.status === 'active');
       },
 
       createRental: async (data) => {
@@ -773,28 +582,6 @@ export const useRentalStore = create<RentalState>()(
           return false;
         } catch (error) {
           return false;
-        }
-      },
-
-      renewRental: async (id, newEndDate) => {
-        try {
-          // This would ideally be a dedicated renewal endpoint, but I'll use a PATCH for simplicity here
-          const res = await fetch('/api/rentals', {
-            method: 'PATCH',
-            body: JSON.stringify({ id, action: 'renew', newEndDate }),
-          });
-          if (res.ok) {
-            const result = await res.json();
-            // result might contain the new rental and the updated old rental
-            // Refreshing the whole list is safer
-            const refreshRes = await fetch('/api/rentals');
-            const rentals = await refreshRes.json();
-            set({ rentals });
-            return result.newRental || null;
-          }
-          return null;
-        } catch (error) {
-          return null;
         }
       },
 
@@ -1467,8 +1254,9 @@ export const useContentStore = create<ContentState>()(
         try {
           const res = await fetch('/api/content');
           if (!res.ok) throw new Error('Failed to fetch');
-          const content = await res.json();
-          set({ content: { ...defaultContent, ...content }, isInitialized: true });
+          const data = await res.json();
+          // The API returns the whole content object or defaults
+          set({ content: { ...defaultContent, ...data }, isInitialized: true });
         } catch (error) {
           console.error('Failed to initialize content store:', error);
           set({ content: defaultContent, isInitialized: true });
@@ -1479,7 +1267,7 @@ export const useContentStore = create<ContentState>()(
         try {
           const res = await fetch('/api/content', {
             method: 'POST',
-            body: JSON.stringify({ faq }),
+            body: JSON.stringify({ key: 'faq', content: faq }),
           });
           if (res.ok) {
             const content = { ...get().content, faq };
@@ -1496,7 +1284,7 @@ export const useContentStore = create<ContentState>()(
         try {
           const res = await fetch('/api/content', {
             method: 'POST',
-            body: JSON.stringify({ aboutUs }),
+            body: JSON.stringify({ key: 'aboutUs', content: aboutUs }),
           });
           if (res.ok) {
             const content = { ...get().content, aboutUs };
@@ -1513,7 +1301,7 @@ export const useContentStore = create<ContentState>()(
         try {
           const res = await fetch('/api/content', {
             method: 'POST',
-            body: JSON.stringify({ termsAndConditions }),
+            body: JSON.stringify({ key: 'terms', content: termsAndConditions }),
           });
           if (res.ok) {
             const content = { ...get().content, termsAndConditions };
