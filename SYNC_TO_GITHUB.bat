@@ -13,7 +13,7 @@ echo Synchronizing OyaLandlord to GitHub...
 echo ====================================================
 echo.
 
-:: 1. Read GITHUB_TOKEN securely from the .env file so we can bypass the 403 error
+:: 1. Read GITHUB_TOKEN securely from the .env file
 set "GITHUB_TOKEN="
 if exist ".env" (
     for /f "tokens=1,* delims==" %%A in (.env) do (
@@ -30,28 +30,25 @@ if "!GITHUB_TOKEN!"=="" (
     goto :end
 )
 
-echo [1/4] Adding all recent changes...
+echo [1/3] Adding all recent changes...
 git add .
 if %errorlevel% neq 0 echo [WARNING] Git add encountered an issue.
 
 echo.
-echo [2/4] Committing changes with current timestamp...
+echo [2/3] Committing changes with current timestamp...
 git commit -m "Auto-Sync Build Progress: %date% %time%"
 
 :: Get the current active Git branch
 for /f "tokens=*" %%a in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%a
 
 echo.
-echo [3/4] Pulling latest updates from GitHub to prevent conflicts...
-git pull https://!GITHUB_TOKEN!@github.com/oyalandlordteam/oyalandlord-backend-migration.git !CURRENT_BRANCH! --rebase
-
-echo.
-echo [4/4] Pushing to repository securely utilizing your Private Token...
-git push https://!GITHUB_TOKEN!@github.com/oyalandlordteam/oyalandlord-backend-migration.git !CURRENT_BRANCH!
+echo [3/3] Mirroring Local Copy to GitHub securely utilizing your Private Token...
+:: Using --force to guarantee your Local Machine stays the Master Source of Truth
+git push https://!GITHUB_TOKEN!@github.com/oyalandlordteam/oyalandlord-backend-migration.git !CURRENT_BRANCH! --force
 
 echo.
 echo ====================================================
-echo [STATUS] Auto-Sync Process Complete. Check the logs above for any errors.
+echo [STATUS] Auto-Sync Process Complete. Check the logs above.
 echo ====================================================
 
 :end
