@@ -62,7 +62,14 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
+<<<<<<< HEAD
     const result = await register(name, email, password, role);
+=======
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const result = register(name, email, password, role);
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     
     if (result.success) {
       toast({

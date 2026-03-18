@@ -1,0 +1,142 @@
+=============================================================================
+             OYALANDLORD: COMPREHENSIVE USER MANUAL & FEATURE GUIDE
+=============================================================================
+*(Keep this file in the project folder. It will be updated as new features are added)*
+
+Welcome to the comprehensive, human-readable user documentation for the OyaLandlord platform. This document explains exactly how the app works from a user's perspective, step by step, button by button.
+
+-----------------------------------------------------------------------------
+1. THE HOME PAGE (Welcome Screen)
+-----------------------------------------------------------------------------
+When a user first opens the app (localhost:3001), they land on the Home Page.
+
+WHAT THEY SEE:
+- A large welcoming hero image with the text "Rent Without Agent Fees".
+- Search Bar: Two main inputs -> Location (e.g., Ikeja, Yaba) and Property Type (Flat, House, Room, etc.).
+- "How It Works" Section: Three columns explaining the platform for Tenants, Landlords, and Solicitors.
+- "Featured Properties": A carousel showing 4 highly-rated or promoted homes.
+- "Why Choose OyaLandlord": A grid of 6 reasons explaining the benefits (Zero Agent Fees, Direct Chat, etc.).
+- "Questions & Answers": An accordion (collapsible list) where clicking a question reveals the answer.
+- Top Navbar: A sticky bar at the top with "Home", "Browse", "Login", and "Register" buttons.
+
+BUTTONS & ACTIONS:
+- [Search Button]: Clicking this on the hero section takes the user directly to the "Browse/Tenant Dashboard" with their filters applied.
+- [Dark Mode Toggle]: A small moon/sun icon in the top right that switches the app between light and dark visual themes.
+- [Login Button]: Opens the Login page.
+- [Register Button]: Opens the Registration page.
+
+
+-----------------------------------------------------------------------------
+2. REGISTRATION AND LOGIN (Authentication)
+-----------------------------------------------------------------------------
+In order to use the core features, users must create an account.
+
+REGISTER PROCESS:
+- The user clicks [Register] at the top right of the screen.
+- They fill out: Full Name, Email Address, and Password.
+- Role Selection: The user MUST click one of three buttons to define who they are:
+  - "I am a Tenant" (Looking to rent)
+  - "I am a Landlord" (Looking to list properties)
+  - "I am a Solicitor" (Looking to provide legal verification services)
+- Upon clicking [Create Account], the system saves their profile and logs them in immediately.
+
+LOGIN PROCESS:
+- The user clicks [Login].
+- They enter their Email and Password.
+- Clicking [Sign In] verifies their details and redirects them to their specific Dashboard based on the role they chose during registration.
+
+
+-----------------------------------------------------------------------------
+3. THE TENANT EXPERIENCE
+-----------------------------------------------------------------------------
+If a user registers as a Tenant, they get access to a specific dashboard tailored for finding and renting properties.
+
+A. TENANT DASHBOARD (Browse Properties)
+- What it is: A massive grid of all available properties on the platform.
+- Filters: On the left side or top, they can tweak the Price Range, Bedrooms, and Amenities (like Power Supply or Security) and the list updates instantly.
+- Property Cards: Each property shows a picture, price, location, and bed/bath count. 
+- Action: Clicking anywhere on a Property Card opens the "Property Details" page.
+
+B. PROPERTY DETAILS PAGE
+- What it is: A full deep-dive into a specific house. Shows a gallery of images, a detailed description, and a breakdown of the price (Rent + Caution Fee, etc.).
+- [Save/Heart Button]: Adds the property to their "Favorites" list for later.
+- [Book Inspection Button]: Clicking this opens a pop-up calendar and time-picker. The tenant selects when they want to visit the property and clicks [Submit Request]. This sends a notification to the Landlord.
+- [Make Offer Button]: Allows the tenant to negotiate. They type in how much they are willing to pay and hit send.
+
+C. INSPECTIONS TAB (My Bookings)
+- What it is: A list of all the visits the tenant has requested.
+- Statuses: Shows whether the Landlord has "Approved", "Rejected", or is still "Pending" the visit. 
+
+D. RENTALS TAB
+- What it is: Once the tenant pays and signs a lease, the active agreement lives here.
+- Actions: They can click [Download Agreement] to save a PDF of their lease, or see how many months are left before rent is due.
+
+
+-----------------------------------------------------------------------------
+4. THE LANDLORD EXPERIENCE
+-----------------------------------------------------------------------------
+Landlords have a command center designed for managing their property portfolios and handling tenant requests.
+
+A. LANDLORD DASHBOARD
+- Overview Stats: Three big cards at the top showing "Total Properties", "Active Rentals", and "Total Views" (how many people clicked on their houses).
+- My Properties List: A table showing every property they own.
+- [Add New Property Button]: Opens the creation form.
+- Action Buttons (Next to each property):
+   - [Edit]: Change the price, photos, or description.
+   - [Toggle Visibility]: A switch that hides the property from the public if it gets rented out.
+   - [Delete]: Removes the property from the system entirely.
+
+B. ADD/EDIT PROPERTY FORM
+- What it is: A long form where the landlord builds their listing.
+- Inputs required: Title, Description, Location, Price, Number of Beds/Baths, and uploading Images.
+- Amenities Selector: Checkboxes to tag the property with things like "Borehole Water", "24/7 Security", "Prepaid Meter".
+- Price Breakdown: Landlords can add specific line items (e.g., Rent = 1M, Caution = 100k, Service Charge = 50k).
+- Clicking [Publish Property] immediately makes it live on the Tenant Dashboard.
+
+C. INSPECTION REQUESTS PANEL
+- What it is: A chronological list of tenants who want to visit the landlord's properties.
+- Actions: The landlord reviews the requested Date/Time and clicks either the green [Approve] button or the red [Reject] button.
+
+
+-----------------------------------------------------------------------------
+5. THE SOLICITOR EXPERIENCE
+-----------------------------------------------------------------------------
+Solicitors serve as legal verifiers on the platform.
+
+A. SOLICITOR DASHBOARD
+- What it is: A queue of properties and agreements waiting for legal sign-off.
+- The solicitor reviews the documents uploaded by the landlord.
+- Action: They click [Add Legal Note] to type comments about the property's legal standing (e.g., "C of O verified, safe to rent").
+
+
+-----------------------------------------------------------------------------
+6. THE ADMIN EXPERIENCE
+-----------------------------------------------------------------------------
+Admins (the platform owners) have ultimate control over the system.
+
+A. ADMIN OVERVIEW
+- What it is: A master dashboard tracking the health of the entire business (Total Users, Total Revenue across the app, Total Properties).
+
+B. USER MANAGEMENT (Verify / Suspend)
+- What it is: A table of every system user.
+- Actions:
+  - [Verify Button]: Crucial for Landlords and Solicitors. Admins review their real-world documents and click Verify to give them a "trusted badge" on the platform.
+  - [Suspend Button]: Revokes a user's access if they violate rules.
+
+C. CONTENT MANAGEMENT (CMS)
+- What it is: This is where admins update the text that appears on the public website without needing a developer.
+- Actions: They can edit the "Frequently Asked Questions", the "About Us" page, and the "Terms and Conditions". Clicking [Save] instantly updates the live website for everyone.
+
+
+-----------------------------------------------------------------------------
+SYSTEM WIDE FEATURES
+-----------------------------------------------------------------------------
+- Notifications: A bell icon at the top right of every dashboard shows a red dot when something happens. (E.g., "Your inspection was approved!" or "You received a new bid!").
+- Dynamic Logouts: Clicking User Profile -> Logout reliably clears the user's data and sends them back to the Home Page.
+
+=============================================================================
+DOCUMENT HISTORY
+=============================================================================
+-  Current Version: 1.0 
+-  Status: Baseline App Setup 
+-  Future Updates: When new features (e.g., Online Payments, Video Tours) are added, this document will be updated below here.

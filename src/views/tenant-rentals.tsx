@@ -2,11 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/lib/router';
+<<<<<<< HEAD
 import { useAuthStore, useRentalStore, usePropertyStore } from '@/lib/store';
 import { Rental } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+=======
+import { useAuthStore, usePropertyStore, useRentalStore } from '@/lib/store';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
 import {
   Table,
   TableBody,
@@ -19,11 +27,15 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+<<<<<<< HEAD
   DialogFooter,
+=======
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+<<<<<<< HEAD
   FileText,
   Printer,
   Calendar,
@@ -36,6 +48,21 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ChatWindow } from '@/components/chat-window';
+=======
+  Home,
+  ArrowLeft,
+  Calendar,
+  FileText,
+  Printer,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
+  Eye,
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
 
 // Format price in Nigerian Naira
 function formatPrice(price: number): string {
@@ -59,6 +86,7 @@ function formatDate(dateString: string): string {
 export default function TenantRentals() {
   const { navigate, goBack } = useRouter();
   const { currentUser } = useAuthStore();
+<<<<<<< HEAD
   const { getRentalsByTenant } = useRentalStore();
   const { getPropertyById } = usePropertyStore();
   const { toast } = useToast();
@@ -198,10 +226,215 @@ export default function TenantRentals() {
               </Card>
             );
           })}
+=======
+  const { getPropertyById } = usePropertyStore();
+  const { getRentalsByTenant, getRentalById } = useRentalStore();
+  const { toast } = useToast();
+  
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
+  
+  const rentals = getRentalsByTenant(currentUser?.id || '');
+  
+  const handleViewReceipt = (rentalId: string) => {
+    setSelectedRentalId(rentalId);
+    setShowReceiptDialog(true);
+  };
+  
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
+  const selectedRental = selectedRentalId ? getRentalById(selectedRentalId) : null;
+  const selectedProperty = selectedRental ? getPropertyById(selectedRental.propertyId) : null;
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-600">Active</Badge>;
+      case 'expired':
+        return <Badge variant="secondary">Expired</Badge>;
+      case 'terminated':
+        return <Badge variant="destructive">Terminated</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'expired':
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      case 'terminated':
+        return <AlertTriangle className="h-5 w-5 text-destructive" />;
+      default:
+        return <Clock className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  return (
+    <div className="container px-4 py-8">
+      {/* Header */}
+      <Button variant="ghost" onClick={goBack} className="mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Dashboard
+      </Button>
+      
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Home className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">My Rentals</h1>
+        </div>
+        <p className="text-muted-foreground">
+          View and manage your rental agreements
+        </p>
+      </div>
+
+      {/* Rentals List */}
+      {rentals.length === 0 ? (
+        <Card className="text-center py-16">
+          <CardContent>
+            <Home className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Rentals Yet</h3>
+            <p className="text-muted-foreground mb-6">
+              You haven&apos;t rented any properties yet. Start by browsing available properties.
+            </p>
+            <Button onClick={() => navigate('tenant-dashboard')}>
+              Browse Properties
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {/* Summary Cards */}
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {rentals.filter(r => r.status === 'active').length}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Active Rentals</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {rentals.filter(r => r.status === 'expired').length}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Expired</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-2xl font-bold">{rentals.length}</p>
+                    <p className="text-sm text-muted-foreground">Total Rentals</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Rentals Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Rental History</CardTitle>
+              <CardDescription>
+                All your rental agreements with landlords
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Property</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rentals.map((rental) => {
+                      const property = getPropertyById(rental.propertyId);
+                      return (
+                        <TableRow key={rental.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{property?.title || 'Unknown Property'}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {property?.location}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="capitalize">{rental.type}</TableCell>
+                          <TableCell>{formatDate(rental.startDate)}</TableCell>
+                          <TableCell>{formatDate(rental.endDate)}</TableCell>
+                          <TableCell className="font-medium">
+                            {formatPrice(rental.totalAmount)}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(rental.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewReceipt(rental.id)}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Receipt
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate('tenant-property', { id: rental.propertyId })}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                              {rental.status === 'active' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate('tenant-property', { id: rental.propertyId })}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Renew
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
         </div>
       )}
 
       {/* Receipt Dialog */}
+<<<<<<< HEAD
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -301,6 +534,98 @@ export default function TenantRentals() {
           onClose={() => setActiveChat(null)}
         />
       )}
+=======
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rental Receipt</DialogTitle>
+            <DialogDescription>
+              Your rental agreement details
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRental && selectedProperty && (
+            <div className="py-4 space-y-4">
+              <div className="text-center border-b pb-4">
+                <h2 className="text-xl font-bold">Oyalandlord</h2>
+                <p className="text-sm text-muted-foreground">Official Rental Receipt</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Receipt No:</p>
+                  <p className="font-medium">{selectedRental.receiptNumber}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date:</p>
+                  <p className="font-medium">{formatDate(selectedRental.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Tenant:</p>
+                  <p className="font-medium">{currentUser?.name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Rental Type:</p>
+                  <p className="font-medium capitalize">{selectedRental.type}</p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <p className="font-medium mb-1">{selectedProperty.title}</p>
+                <p className="text-sm text-muted-foreground">{selectedProperty.location}</p>
+              </div>
+              
+              <Separator />
+              
+              <Table>
+                <TableBody>
+                  {selectedRental.breakdownItems.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell className="text-right">{formatPrice(item.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-bold border-t-2">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right text-primary">
+                      {formatPrice(selectedRental.totalAmount)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              
+              <div className="border-t pt-4 text-sm">
+                <div className="flex justify-between">
+                  <span>Duration:</span>
+                  <span>{formatDate(selectedRental.startDate)} - {formatDate(selectedRental.endDate)}</span>
+                </div>
+                {selectedRental.cautionFee > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Caution Fee (Refundable):</span>
+                    <span>{formatPrice(selectedRental.cautionFee)}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="border-t pt-4 text-xs text-muted-foreground text-center">
+                <p>Thank you for using Oyalandlord!</p>
+                <p>No Agent Fee • Direct Landlord Connection</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setShowReceiptDialog(false)}>
+              Close
+            </Button>
+            <Button className="flex-1" onClick={handlePrintReceipt}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     </div>
   );
 }

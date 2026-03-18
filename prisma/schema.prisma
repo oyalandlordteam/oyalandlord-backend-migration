@@ -10,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
 model User {
   id                String            @id @default(cuid())
   email             String            @unique
@@ -139,6 +140,208 @@ model SystemContent {
   key       String   @unique // 'faq', 'aboutUs', 'terms'
   content   String   // Stored as JSON string
   updatedAt DateTime @updatedAt
+=======
+// User Model
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password        String
+  role            String   // 'tenant' | 'landlord' | 'solicitor' | 'admin'
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  phone           String?
+  nin             String?
+  documentUrl     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  isDeleted       Boolean  @default(false)
+  deletionReason  String?
+  deletedAt       DateTime?
+
+  // Relations
+  properties      Property[]          @relation("LandlordProperties")
+  solicitorJobs   Property[]          @relation("SolicitorJobs")
+  inspections     InspectionRequest[] @relation("TenantInspections")
+  landlordInspecs InspectionRequest[] @relation("LandlordInspections")
+  bids            Bid[]
+  sentMessages    Message[]           @relation("SentMessages")
+  receivedMessages Message[]          @relation("ReceivedMessages")
+  notifications   Notification[]
+  reports         PropertyReport[]
+  favorites       Favorite[]
+  rentals         Rental[]            @relation("TenantRentals")
+  landlordRentals Rental[]            @relation("LandlordRentals")
+  messageReplies  MessageReply[]
+}
+
+// Property Model
+model Property {
+  id                String   @id @default(cuid())
+  propertyCode      String   @unique
+  title             String
+  description       String
+  price             Float
+  location          String
+  type              String   // 'flat' | 'house' | 'duplex' | 'room' | 'studio' | 'maisonette'
+  bedrooms          Int
+  bathrooms         Int
+  images            String   // Stored as JSON string
+  featured          Boolean  @default(false)
+  available         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  amenities         String   @default("[]") // JSON
+  security          String   @default("[]") // JSON
+  parking           String   @default("[]") // JSON
+  outdoorSpace      String   @default("[]") // JSON
+  petPolicy         String?
+  furnishing        String?
+  isDeleted         Boolean  @default(false)
+  deletionReason    String?
+  inspectionFee     Float    @default(0)
+  whatsappEnabled   Boolean  @default(true)
+  whatsappNumber    String?
+  solicitorId       String?
+  landmark          String?
+  allowNegotiation  Boolean  @default(true)
+  viewCount         Int      @default(0)
+  nearbyAmenities   String   @default("[]") // JSON
+  powerSupply       String   @default("[]") // JSON
+  waterSupply       String   @default("[]") // JSON
+  rentPeriod        String   @default("year")
+  earliestMoveIn    DateTime?
+  address           String?
+
+  // Relations
+  landlord          User     @relation("LandlordProperties", fields: [landlordId], references: [id])
+  landlordId        String
+  solicitor         User?    @relation("SolicitorJobs", fields: [solicitorId], references: [id])
+  breakdownItems    BreakdownItem[]
+  inspections       InspectionRequest[]
+  bids              Bid[]
+  reports           PropertyReport[]
+  favorites         Favorite[]
+  rentals           Rental[]
+  messages          Message[]
+}
+
+model BreakdownItem {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  property    Property? @relation(fields: [propertyId], references: [id])
+  propertyId  String?
+  rental      Rental?   @relation(fields: [rentalId], references: [id])
+  rentalId    String?
+}
+
+model InspectionRequest {
+  id            String   @id @default(cuid())
+  status        String   // 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled'
+  date          String
+  time          String
+  notes         String?
+  createdAt     DateTime @default(now())
+  requestedAt   DateTime?
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+
+  // Relations
+  property      Property @relation(fields: [propertyId], references: [id])
+  propertyId    String
+  landlord      User     @relation("LandlordInspections", fields: [landlordId], references: [id])
+  landlordId    String
+  tenant        User     @relation("TenantInspections", fields: [tenantId], references: [id])
+  tenantId      String
+}
+
+model Bid {
+  id          String   @id @default(cuid())
+  amount      Float
+  message     String?
+  status      String   // 'pending' | 'accepted' | 'rejected'
+  createdAt   DateTime @default(now())
+
+  // Relations
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  tenant      User     @relation(fields: [tenantId], references: [id])
+  tenantId    String
+}
+
+model Rental {
+  id              String   @id @default(cuid())
+  type            String   // 'rent' | 'buy'
+  startDate       DateTime
+  endDate         DateTime
+  totalAmount     Float
+  cautionFee      Float
+  status          String   // 'active' | 'ended' | 'pending_signature' | 'cancelled' | 'expired'
+  receiptNumber   String?
+  agreementUrl    String?
+  renewedFrom     String?
+  renewedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  property        Property @relation(fields: [propertyId], references: [id])
+  propertyId      String
+  landlord        User     @relation("LandlordRentals", fields: [landlordId], references: [id])
+  landlordId      String
+  tenant          User     @relation("TenantRentals", fields: [tenantId], references: [id])
+  tenantId        String
+  breakdownItems  BreakdownItem[]
+  paymentHistory  PaymentRecord[]
+}
+
+model PaymentRecord {
+  id             String   @id @default(cuid())
+  amount         Float
+  date           DateTime @default(now())
+  description    String
+  receiptNumber  String
+  rental         Rental   @relation(fields: [rentalId], references: [id])
+  rentalId       String
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  recipientId String
+  replies     MessageReply[]
+}
+
+model MessageReply {
+  id          String   @id @default(cuid())
+  content     String
+  createdAt   DateTime @default(now())
+  message     Message  @relation(fields: [messageId], references: [id])
+  messageId   String
+  sender      User     @relation(fields: [senderId], references: [id])
+  senderId    String
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        String   // 'inspection' | 'rental' | 'message' | 'payment' | 'system'
+  read        Boolean  @default(false)
+  actionUrl   String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
 }
 
 model Announcement {
@@ -149,6 +352,7 @@ model Announcement {
   createdAt DateTime @default(now())
 }
 
+<<<<<<< HEAD
 model SolicitorComment {
   id            String   @id @default(cuid())
   inspectionId  String
@@ -157,3 +361,33 @@ model SolicitorComment {
   comment       String
   createdAt     DateTime @default(now())
 }
+=======
+model PropertyReport {
+  id          String   @id @default(cuid())
+  reason      String   // 'fake_listing' | 'already_rented' | 'wrong_price' | 'scam' | 'other'
+  description String?
+  status      String   @default("pending") // 'pending' | 'reviewed' | 'resolved'
+  createdAt   DateTime @default(now())
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  reporter    User     @relation(fields: [reporterId], references: [id])
+  reporterId  String
+}
+
+model Favorite {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+}
+
+model SolicitorComment {
+  id            String   @id @default(cuid())
+  inspectionId  String
+  solicitorId   String
+  comment       String
+  createdAt     DateTime @default(now())
+}
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)

@@ -27,7 +27,14 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
+<<<<<<< HEAD
     const result = await login(email, password);
+=======
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const result = login(email, password);
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     
     if (result.success) {
       toast({
@@ -118,6 +125,29 @@ export default function LoginPage() {
             </button>
           </div>
 
+<<<<<<< HEAD
+=======
+          <div className="mt-8 p-5 bg-gray-100/50 dark:bg-black/40 rounded-xl border border-border dark:border-white/10 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-1 bg-primary/10 rounded-bl-lg">
+              <Shield className="h-3 w-3 text-primary" />
+            </div>
+            <p className="text-xs text-muted-foreground font-extrabold uppercase tracking-wider mb-3 text-center">Demo Access Accounts</p>
+            <div className="text-[11px] space-y-2 font-bold">
+              <div className="flex justify-between items-center p-2 rounded bg-white dark:bg-white/5 border border-transparent dark:border-white/5">
+                <span className="text-muted-foreground">Tenant:</span>
+                <code className="text-primary">adebayo@email.com</code>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded bg-white dark:bg-white/5 border border-transparent dark:border-white/5">
+                <span className="text-muted-foreground">Landlord:</span>
+                <code className="text-primary">emeka@email.com</code>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded bg-white dark:bg-white/5 border border-transparent dark:border-white/5">
+                <span className="text-muted-foreground">Solicitor:</span>
+                <code className="text-primary">funke@email.com</code>
+              </div>
+            </div>
+          </div>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
         </CardContent>
       </Card>
     </div>

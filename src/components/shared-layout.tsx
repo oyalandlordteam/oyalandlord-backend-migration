@@ -153,7 +153,10 @@ export function SharedLayout({ children }: SharedLayoutProps) {
           { label: 'Inspections', view: 'admin-dashboard' as View, icon: Calendar, params: { tab: 'inspections' } },
           { label: 'Reports', view: 'admin-dashboard' as View, icon: Flag, params: { tab: 'reports' } },
           { label: 'Announce', view: 'admin-dashboard' as View, icon: Megaphone, params: { tab: 'announcements' } },
+<<<<<<< HEAD
           { label: 'CMS', view: 'admin-dashboard' as View, icon: FileText, params: { tab: 'content' } },
+=======
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
           { label: 'Trash', view: 'admin-dashboard' as View, icon: Trash2, params: { tab: 'trash' } },
         ];
       default:

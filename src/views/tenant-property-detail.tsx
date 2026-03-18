@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState, useMemo } from 'react';
 import { useRouter } from '@/lib/router';
 import { 
@@ -43,6 +44,20 @@ import {
   Flag,
   HelpCircle,
 } from 'lucide-react';
+=======
+import { useState, useEffect } from 'react';
+import { useRouter } from '@/lib/router';
+import { useAuthStore, usePropertyStore, useInspectionStore, useBidStore, useRentalStore, useNotificationStore, useFavoriteStore, useReportStore, calculateTotalPackage } from '@/lib/store';
+import { Property, PropertyType, BreakdownItem, ReportReason } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
 import {
   Dialog,
   DialogContent,
@@ -52,6 +67,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+<<<<<<< HEAD
   Table,
   TableBody,
   TableCell,
@@ -61,13 +77,51 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
+=======
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+<<<<<<< HEAD
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+=======
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  MapPin,
+  Bed,
+  Bath,
+  Home,
+  Shield,
+  ArrowLeft,
+  CheckCircle,
+  User,
+  Calendar,
+  Loader2,
+  MessageCircle,
+  Banknote,
+  Gavel,
+  FileText,
+  Printer,
+  Clock,
+  AlertCircle,
+  Heart,
+  Flag,
+  Car,
+  PawPrint,
+  TreeDeciduous,
+  TreePalm,
+  Armchair,
+  HelpCircle,
+} from 'lucide-react';
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
 import { useToast } from '@/hooks/use-toast';
 
 // Format price in Nigerian Naira
@@ -80,6 +134,7 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
+<<<<<<< HEAD
 // Get initials for avatar fallback
 function getInitials(name: string): string {
   return name
@@ -137,11 +192,115 @@ export default function TenantPropertyDetail() {
         <h2 className="text-2xl font-bold mb-4">Property Not Found</h2>
         <Button onClick={() => navigate('tenant-dashboard')}>
           Back to Dashboard
+=======
+// Property type labels
+const propertyTypeLabels: Record<PropertyType, string> = {
+  flat: 'Flat',
+  house: 'House',
+  duplex: 'Duplex',
+  room: 'Room',
+  studio: 'Studio',
+  maisonette: 'Maisonette',
+};
+
+export default function TenantPropertyDetail() {
+  const { params, navigate, goBack } = useRouter();
+  const { currentUser, getUserById } = useAuthStore();
+  const { getPropertyById, incrementViewCount } = usePropertyStore();
+  const { createInspectionRequest, getInspectionsByTenant, updateInspectionStatus, getInspectionById } = useInspectionStore();
+  const { createBid, hasBidOnProperty, getBidsByTenant, updateBidStatus, getBidsByProperty } = useBidStore();
+  const { createRental, getRentalsByTenant, renewRental, getRentalById } = useRentalStore();
+  const { createNotification } = useNotificationStore();
+  const { isFavorite, addFavorite, removeFavorite } = useFavoriteStore();
+  const { createReport } = useReportStore();
+  const { toast } = useToast();
+  
+  const [showInspectionDialog, setShowInspectionDialog] = useState(false);
+  const [showBidDialog, setShowBidDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [showRenewDialog, setShowRenewDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [preferredDate, setPreferredDate] = useState('');
+  const [note, setNote] = useState('');
+  const [bidAmount, setBidAmount] = useState('');
+  const [rentalType, setRentalType] = useState<'rent' | 'buy'>('rent');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [reportReason, setReportReason] = useState<ReportReason>('other');
+  const [reportDescription, setReportDescription] = useState('');
+  const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({});
+  
+  const [createdRentalId, setCreatedRentalId] = useState<string | null>(null);
+
+  const property = getPropertyById(params.id);
+
+  // Increment view count when property is viewed
+  useEffect(() => {
+    if (property?.id) {
+      incrementViewCount(property.id);
+    }
+  }, [property?.id, incrementViewCount]);
+
+  // Check if property is favorited
+  const isPropertyFavorite = property && currentUser ? isFavorite(currentUser.id, property.id) : false;
+
+  // Get inspection requests for this property by current user
+  const userInspections = getInspectionsByTenant(currentUser?.id || '');
+  const propertyInspection = userInspections.find(i => i.propertyId === property?.id);
+  
+  // Get existing rental for this property
+  const userRentals = getRentalsByTenant(currentUser?.id || '');
+  const existingRental = userRentals.find(r => r.propertyId === property?.id && r.status === 'active');
+  
+  // Check if user has already bid
+  const hasBid = property ? hasBidOnProperty(property.id, currentUser?.id || '') : false;
+  
+  // Get user's bid for this property
+  const userBids = getBidsByTenant(currentUser?.id || '');
+  const userBid = userBids.find(b => b.propertyId === property?.id);
+
+  // Calculate total package from breakdown
+  const totalPackage = calculateTotalPackage(property?.breakdownItems);
+  
+  // Calculate caution fee
+  const cautionFee = (() => {
+    if (!property?.breakdownItems) return 0;
+    const cautionItem = property.breakdownItems.find(item => 
+      item.name.toLowerCase().includes('caution') || item.name.toLowerCase().includes('deposit')
+    );
+    return cautionItem?.amount || 0;
+  })();
+
+  // Calculate legal fee (only if solicitor attached)
+  const legalFee = (() => {
+    if (!property?.solicitorId || !property?.breakdownItems) return 0;
+    const legalItem = property.breakdownItems.find(item => 
+      item.name.toLowerCase().includes('legal')
+    );
+    return legalItem?.amount || 0;
+  })();
+
+  if (!property) {
+    return (
+      <div className="container px-4 py-16 text-center">
+        <Home className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Property Not Found</h2>
+        <p className="text-muted-foreground mb-4">
+          The property you&apos;re looking for doesn&apos;t exist or has been removed.
+        </p>
+        <Button onClick={() => navigate('tenant-dashboard')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Search
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
         </Button>
       </div>
     );
   }
 
+<<<<<<< HEAD
   const isPropertyFavorite = currentUser ? isFavorite(currentUser.id, property.id) : false;
   
   const tenantInspections = currentUser ? getInspectionsByTenant(currentUser.id) : [];
@@ -217,10 +376,103 @@ export default function TenantPropertyDetail() {
 
   const handleBidSubmit = async () => {
     if (!currentUser) return;
+=======
+  const landlord = getUserById(property.landlordId);
+  const solicitor = property.solicitorId ? getUserById(property.solicitorId) : null;
+
+  const handleInspectionRequest = async () => {
+    if (!currentUser) {
+      toast({
+        title: 'Please login',
+        description: 'You need to be logged in to request an inspection.',
+        variant: 'destructive',
+      });
+      navigate('login');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Format screening answers for storage
+    const screeningAnswersText = property.screeningQuestions && property.screeningQuestions.length > 0
+      ? property.screeningQuestions.map(q => `Q: ${q.question}\nA: ${screeningAnswers[q.id] || 'Not answered'}`).join('\n\n')
+      : undefined;
+    
+    const combinedNote = screeningAnswersText 
+      ? `${note ? note + '\n\n' : ''}--- Screening Answers ---\n${screeningAnswersText}`
+      : note || undefined;
+
+    const inspection = createInspectionRequest(
+      property.id, 
+      property.landlordId, // Add landlordId
+      currentUser.id, 
+      preferredDate || '', 
+      combinedNote
+    );
+    
+    // Create notification for landlord
+    createNotification({
+      userId: property.landlordId,
+      title: 'New Inspection Request',
+      message: `You have a new inspection request for "${property.title}" from ${currentUser.name}.`,
+      type: 'inspection',
+      actionUrl: 'landlord-dashboard',
+    });
+    
+    // If solicitor attached, notify them too
+    if (property.solicitorId) {
+      createNotification({
+        userId: property.solicitorId,
+        title: 'New Inspection Request',
+        message: `You have a new inspection request to verify for "${property.title}".`,
+        type: 'inspection',
+        actionUrl: 'solicitor-dashboard',
+      });
+    }
+    
+    setIsSubmitting(false);
+    setShowInspectionDialog(false);
+    setScreeningAnswers({});
+    setPreferredDate('');
+    setNote('');
+
+    toast({
+      title: 'Inspection Request Submitted!',
+      description: property.solicitorId 
+        ? 'This property has a solicitor. Your request will require approval.'
+        : 'Your request has been submitted. Check your inspections page for updates.',
+    });
+    
+    navigate('tenant-inspections');
+  };
+
+  const handleWhatsAppContact = () => {
+    if (property.whatsappEnabled && property.whatsappNumber) {
+      const message = encodeURIComponent(`Hello, I'm interested in the property "${property.title}" listed on Oyalandlord. I would like to make an inquiry.`);
+      window.open(`https://wa.me/${property.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
+    }
+  };
+
+  const handleBidSubmit = async () => {
+    if (!currentUser || !bidAmount) return;
+    
+    const amount = parseFloat(bidAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: 'Invalid Amount',
+        description: 'Please enter a valid bid amount.',
+        variant: 'destructive',
+      });
+      return;
+    }
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     
     setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 800));
     
+<<<<<<< HEAD
     createBid(currentUser.id, property.id, Number(bidAmount));
     
     addNotification(
@@ -237,6 +489,36 @@ export default function TenantPropertyDetail() {
     toast({
       title: 'Offer Submitted',
       description: 'Your bid has been sent to the landlord.',
+=======
+    const bid = createBid(property.id, currentUser.id, amount);
+    
+    if (!bid) {
+      toast({
+        title: 'Bid Failed',
+        description: 'You have already placed a bid on this property.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Create notification for landlord
+    createNotification({
+      userId: property.landlordId,
+      title: 'New Bid Received',
+      message: `You have received a bid of ${formatPrice(amount)} for "${property.title}".`,
+      type: 'system',
+      actionUrl: 'landlord-dashboard',
+    });
+    
+    setIsSubmitting(false);
+    setShowBidDialog(false);
+    setBidAmount('');
+    
+    toast({
+      title: 'Bid Submitted!',
+      description: 'Your bid has been submitted. You will be notified if it is accepted.',
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     });
   };
 
@@ -244,6 +526,7 @@ export default function TenantPropertyDetail() {
     if (!currentUser) return;
     
     setIsSubmitting(true);
+<<<<<<< HEAD
     await new Promise(resolve => setTimeout(resolve, 1500)); // Longer payment delay
     
     createRental(currentUser.id, property.id, property.landlordId, rentalType, totalPackage, property.breakdownItems);
@@ -263,15 +546,59 @@ export default function TenantPropertyDetail() {
     toast({
       title: 'Payment Successful',
       description: 'Your transaction has been processed and verified.',
+=======
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1); // 1 year rental
+    
+    const rental = createRental({
+      propertyId: property.id,
+      tenantId: currentUser.id,
+      landlordId: property.landlordId,
+      type: rentalType,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      totalAmount: totalPackage,
+      breakdownItems: property.breakdownItems,
+      cautionFee,
+      status: 'active',
+      bidAccepted: !!userBid?.status || false,
+    });
+    
+    // Create notification for landlord
+    createNotification({
+      userId: property.landlordId,
+      title: 'Property Rented',
+      message: `Your property "${property.title}" has been rented by ${currentUser.name}.`,
+      type: 'rental',
+      actionUrl: 'landlord-dashboard',
+    });
+    
+    setCreatedRentalId(rental.id);
+    setIsSubmitting(false);
+    setShowPaymentDialog(false);
+    setShowReceiptDialog(true);
+    
+    toast({
+      title: 'Payment Successful!',
+      description: 'Your rental has been confirmed. You can view your receipt below.',
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     });
   };
 
   const handleRenewal = async () => {
+<<<<<<< HEAD
     if (!currentUser || !existingRental) return;
+=======
+    if (!existingRental || !newEndDate) return;
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
     
     setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 800));
     
+<<<<<<< HEAD
     // Simulate renewal
     addNotification(
       property.landlordId,
@@ -327,12 +654,34 @@ export default function TenantPropertyDetail() {
     const msg = encodeURIComponent(`Hello, I'm interested in your property on Oyalandlord: ${property.title} (${property.location})`);
     const num = property.whatsappNumber || '';
     window.open(`https://wa.me/${num.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
+=======
+    const newRental = renewRental(existingRental.id, newEndDate);
+    
+    if (newRental) {
+      createNotification({
+        userId: property.landlordId,
+        title: 'Rental Renewed',
+        message: `${currentUser?.name} has renewed their rental for "${property.title}".`,
+        type: 'rental',
+        actionUrl: 'landlord-dashboard',
+      });
+      
+      toast({
+        title: 'Renewal Successful!',
+        description: 'Your rental has been renewed.',
+      });
+    }
+    
+    setIsSubmitting(false);
+    setShowRenewDialog(false);
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
   };
 
   const handlePrintReceipt = () => {
     window.print();
   };
 
+<<<<<<< HEAD
   const receiptContent = existingRental ? (
     <div className="space-y-4 p-6 border rounded-lg bg-white dark:bg-black/20 font-sans print:p-10 print:border-none">
       <div className="text-center border-b pb-4">
@@ -361,10 +710,105 @@ export default function TenantPropertyDetail() {
         <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Property</p>
         <p className="font-bold">{property.title}</p>
         <p className="text-xs">{property.location}</p>
+=======
+  const handleToggleFavorite = () => {
+    if (!currentUser || !property) return;
+    
+    if (isPropertyFavorite) {
+      removeFavorite(currentUser.id, property.id);
+      toast({
+        title: 'Removed from Favorites',
+        description: 'Property has been removed from your favorites.',
+      });
+    } else {
+      addFavorite(currentUser.id, property.id);
+      toast({
+        title: 'Added to Favorites',
+        description: 'Property has been added to your favorites.',
+      });
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    if (!currentUser || !property) return;
+    
+    setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    createReport({
+      propertyId: property.id,
+      reporterId: currentUser.id,
+      reason: reportReason,
+      description: reportDescription || undefined,
+    });
+    
+    // Create notification for admin
+    createNotification({
+      userId: 'user-admin-1',
+      title: 'Property Reported',
+      message: `Property "${property.title}" has been reported for ${reportReason.replace('_', ' ')}.`,
+      type: 'system',
+    });
+    
+    setIsSubmitting(false);
+    setShowReportDialog(false);
+    setReportReason('other');
+    setReportDescription('');
+    
+    toast({
+      title: 'Report Submitted',
+      description: 'Thank you for your report. We will review it shortly.',
+    });
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const canRequestInspection = !propertyInspection || propertyInspection.status === 'rejected';
+  const canMakePayment = propertyInspection?.status === 'approved' && !existingRental;
+
+  // Receipt dialog content
+  const receiptContent = createdRentalId ? (
+    <div className="space-y-4">
+      <div className="text-center border-b pb-4">
+        <h2 className="text-xl font-bold">Oyalandlord</h2>
+        <p className="text-sm text-muted-foreground">Rental Receipt</p>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <p className="text-muted-foreground">Receipt No:</p>
+          <p className="font-medium">{getRentalById(createdRentalId)?.receiptNumber}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Date:</p>
+          <p className="font-medium">{new Date().toLocaleDateString('en-NG')}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Tenant:</p>
+          <p className="font-medium">{currentUser?.name}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Landlord:</p>
+          <p className="font-medium">{landlord?.name}</p>
+        </div>
+      </div>
+      
+      <div className="border-t pt-4">
+        <p className="font-medium mb-2">{property.title}</p>
+        <p className="text-sm text-muted-foreground">{property.location}</p>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
       </div>
       
       <Table>
         <TableBody>
+<<<<<<< HEAD
           {existingRental.breakdownItems.map((item, index) => (
             <TableRow key={index} className="border-none">
               <TableCell className="py-1">{item.name}</TableCell>
@@ -374,12 +818,46 @@ export default function TenantPropertyDetail() {
           <TableRow className="border-t-2 font-bold">
             <TableCell>TOTAL PAID</TableCell>
             <TableCell className="text-right text-primary">{formatPrice(existingRental.totalAmount)}</TableCell>
+=======
+          {property.breakdownItems.map((item, index) => (
+            <TableRow key={index}>
+              <TableCell>{item.name}</TableCell>
+              <TableCell className="text-right">{formatPrice(item.amount)}</TableCell>
+            </TableRow>
+          ))}
+          <TableRow className="font-bold border-t-2">
+            <TableCell>Total</TableCell>
+            <TableCell className="text-right text-primary">{formatPrice(totalPackage)}</TableCell>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
           </TableRow>
         </TableBody>
       </Table>
       
+<<<<<<< HEAD
       <div className="text-center pt-4 opacity-50 text-[10px]">
         <p>Digitally Generated Receipt • Secured by Oyalandlord Escrow</p>
+=======
+      <div className="border-t pt-4 text-sm">
+        <div className="flex justify-between">
+          <span>Rental Type:</span>
+          <span className="capitalize">{rentalType}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Duration:</span>
+          <span>1 Year ({new Date().getFullYear()} - {new Date().getFullYear() + 1})</span>
+        </div>
+        {cautionFee > 0 && (
+          <div className="flex justify-between text-green-600">
+            <span>Caution Fee (Refundable):</span>
+            <span>{formatPrice(cautionFee)}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="border-t pt-4 text-xs text-muted-foreground text-center">
+        <p>Thank you for using Oyalandlord!</p>
+        <p>No Agent Fee • Direct Landlord Connection</p>
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
       </div>
     </div>
   ) : null;
@@ -387,6 +865,7 @@ export default function TenantPropertyDetail() {
   return (
     <div className="container px-4 py-8">
       {/* Back Button */}
+<<<<<<< HEAD
       <Button variant="ghost" onClick={goBack} className="mb-6 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to listings
@@ -559,6 +1038,292 @@ export default function TenantPropertyDetail() {
         {/* Right Column - Actions */}
         <div className="space-y-6">
           <Card className="sticky top-24 border-primary/20 shadow-xl shadow-primary/5">
+=======
+      <Button variant="ghost" onClick={goBack} className="mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Search
+      </Button>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Image Gallery */}
+          <Card className="overflow-hidden">
+            <div className="aspect-[16/10] relative">
+              {property.images[selectedImage] ? (
+                <img
+                  src={property.images[selectedImage]}
+                  alt={property.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <Home className="h-16 w-16 text-muted-foreground/50" />
+                </div>
+              )}
+              <div className="absolute top-4 left-4 flex gap-2">
+                <Badge variant="secondary">
+                  {propertyTypeLabels[property.type]}
+                </Badge>
+                {property.solicitorId && (
+                  <Badge variant="default">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Solicitor Verified
+                  </Badge>
+                )}
+              </div>
+              <Badge className="absolute top-4 right-4 bg-green-600 text-white" variant="default">
+                No Agent Fee
+              </Badge>
+            </div>
+            
+            {property.images.length > 1 && (
+              <div className="flex gap-2 p-4 overflow-x-auto">
+                {property.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`w-20 h-16 rounded-md overflow-hidden shrink-0 border-2 transition-colors ${
+                      selectedImage === index ? 'border-primary' : 'border-transparent'
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${property.title} - Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Property Details */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-2xl">{property.title}</CardTitle>
+                  <CardDescription className="flex items-center gap-1 mt-1">
+                    <MapPin className="h-4 w-4" />
+                    {property.location}
+                  </CardDescription>
+                  {property.address && (
+                    <p className="text-sm text-muted-foreground mt-1">{property.address}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-primary">{formatPrice(property.price)}</p>
+                  <p className="text-muted-foreground">per year</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Bed className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-semibold">{property.bedrooms}</p>
+                  <p className="text-sm text-muted-foreground">Bedrooms</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Bath className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-semibold">{property.bathrooms}</p>
+                  <p className="text-sm text-muted-foreground">Bathrooms</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <Home className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-semibold capitalize">{property.type}</p>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Cost Breakdown Table */}
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Banknote className="h-5 w-5" />
+                  Cost Breakdown
+                </h3>
+                <Card className="overflow-hidden">
+                  <Table>
+                    <TableBody>
+                      {property.breakdownItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="text-right">{formatPrice(item.amount)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Total */}
+                      <TableRow className="bg-primary/5 border-t-2">
+                        <TableCell className="font-bold">Total Package</TableCell>
+                        <TableCell className="text-right font-bold text-primary">
+                          {formatPrice(totalPackage)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </Card>
+                {cautionFee > 0 && (
+                  <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    Caution fee of {formatPrice(cautionFee)} is refundable if no damage to property
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Description */}
+              <div>
+                <h3 className="font-semibold mb-2">Description</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {property.description}
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Availability */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Availability Status</h3>
+                  <p className="text-sm text-muted-foreground">
+                    This property is currently available for rent
+                  </p>
+                </div>
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Available
+                </Badge>
+              </div>
+
+              {/* Property Features */}
+              {(property.security?.length || property.parking?.length || property.outdoorSpace?.length || property.furnishing || property.petPolicy) && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="font-semibold mb-3">Property Features</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Security */}
+                      {property.security && property.security.length > 0 && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Shield className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Security</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {property.security.map((item, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Parking */}
+                      {property.parking && property.parking.length > 0 && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Car className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Parking</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {property.parking.map((item, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Outdoor Space */}
+                      {property.outdoorSpace && property.outdoorSpace.length > 0 && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TreeDeciduous className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Outdoor</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {property.outdoorSpace.map((item, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Furnishing */}
+                      {property.furnishing && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Armchair className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Furnishing</span>
+                          </div>
+                          <Badge variant={property.furnishing === 'furnished' ? 'default' : 'secondary'}>
+                            {property.furnishing === 'furnished' ? 'Fully Furnished' : property.furnishing === 'semi-furnished' ? 'Semi-Furnished' : 'Unfurnished'}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Pet Policy */}
+                      {property.petPolicy && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <PawPrint className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Pet Policy</span>
+                          </div>
+                          <Badge variant={property.petPolicy === 'allowed' ? 'default' : 'secondary'}>
+                            {property.petPolicy === 'allowed' ? 'Pets Allowed' : 'No Pets'}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Earliest Move-In */}
+                      {property.earliestMoveIn && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Earliest Move-In</span>
+                          </div>
+                          <span className="text-sm">
+                            {new Date(property.earliestMoveIn).toLocaleDateString('en-NG', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Negotiation Badge */}
+              {property.allowNegotiation && (
+                <>
+                  <Separator />
+                  <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg">
+                    <Gavel className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Price Negotiation Enabled</span>
+                    <Badge variant="secondary" className="ml-auto">Open to Offers</Badge>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Action Card */}
+          <Card className="sticky top-24">
+>>>>>>> d7b14eb (Initial commit: OyaLandlord Backend Migration & Dockerization)
             <CardHeader>
               <CardTitle className="text-lg">Interested in this property?</CardTitle>
               <CardDescription>

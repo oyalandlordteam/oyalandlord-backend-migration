@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { StoreProvider } from "@/components/providers";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { GlobalLogger } from "@/components/global-logger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
           </div>
         </StoreProvider>
         <Toaster />
+        <GlobalLogger />
       </body>
     </html>
   );
