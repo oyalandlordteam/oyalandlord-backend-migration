@@ -1,64 +1,71 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get('type');
+
   try {
     const contents = await prisma.systemContent.findMany();
     
-    // Transform into a key-value object
-    const result: Record<string, any> = {};
-    contents.forEach(item => {
+    // Convert array of {key, content} to a single object
+    const contentMap = contents.reduce((acc: any, curr) => {
       try {
-        result[item.key] = JSON.parse(item.content);
-      } catch {
-        result[item.key] = item.content;
+        acc[curr.key] = JSON.parse(curr.content);
+      } catch (e) {
+        acc[curr.key] = curr.content;
       }
-    });
+      return acc;
+    }, {});
 
-    // Provide defaults if nothing is in DB
-    if (!result.faq) {
-      result.faq = [
+    // Provide defaults if database is empty
+    const defaultContent = {
+      faq: [
         { id: '1', question: 'How do I book an inspection?', answer: 'Search for a property you like, click View Details, and use the Book Inspection button.' },
         { id: '2', question: 'Do I pay an agent fee?', answer: 'No! Oyalandlord connects you directly to verified landlords, so there are absolutely no agent fees.' }
-      ];
-    }
-    if (!result.aboutUs) {
-      result.aboutUs = 'Oyalandlord is a platform that connects verified landlords directly with tenants, eliminating exorbitant agent fees.';
-    }
-    if (!result.terms) {
-      result.terms = 'By using Oyalandlord, you agree to our terms of direct landlord-tenant connection...';
+      ],
+      aboutUs: 'Oyalandlord is a platform that connects verified landlords directly with tenants, eliminating exorbitant agent fees.',
+      termsAndConditions: 'By using OyaLandlord, you agree to our terms of service...',
+    };
+
+    const finalContent = {
+      faq: contentMap.faq || defaultContent.faq,
+      aboutUs: contentMap.aboutUs || defaultContent.aboutUs,
+      termsAndConditions: contentMap.termsAndConditions || defaultContent.termsAndConditions,
+    };
+
+    if (type && finalContent[type as keyof typeof finalContent]) {
+      return NextResponse.json(finalContent[type as keyof typeof finalContent]);
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(finalContent);
   } catch (error) {
-    console.error('Content GET Error:', error);
+    console.error('Failed to fetch content:', error);
     return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { key, content } = await request.json();
+    const body = await request.json();
+    const { key, content } = body;
 
     if (!key || content === undefined) {
-      return NextResponse.json({ error: 'Key and content are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing key or content' }, { status: 400 });
     }
 
-    // Upsert the content
+    // Stringify content if it's an object/array
+    const contentString = typeof content === 'string' ? content : JSON.stringify(content);
+
     const updated = await prisma.systemContent.upsert({
       where: { key },
-      update: { 
-        content: typeof content === 'string' ? content : JSON.stringify(content) 
-      },
-      create: { 
-        key, 
-        content: typeof content === 'string' ? content : JSON.stringify(content) 
-      },
+      update: { content: contentString },
+      create: { key, content: contentString },
     });
 
-    return NextResponse.json({ success: true, updated });
+    return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    console.error('Content POST Error:', error);
+    console.error('Failed to update content:', error);
     return NextResponse.json({ error: 'Failed to update content' }, { status: 500 });
   }
 }
