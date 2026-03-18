@@ -10,266 +10,150 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for all roles
 model User {
-  id              String           @id @default(uuid())
-  name            String
-  email           String           @unique
-  password        String
-  role            String           // "tenant", "landlord", "solicitor", "admin"
-  isVerified      Boolean          @default(false)
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?
-  deletionReason  String?
-  
-  // Relations
-  properties      Property[]       @relation("LandlordProperties")
-  assignedLoans   Property[]       @relation("SolicitorProperties")
-  inspections     Inspection[]     @relation("TenantInspections")
-  givenInspections Inspection[]    @relation("LandlordInspections")
-  rentals         RentalAgreement[] @relation("TenantRentals")
-  landlordRentals RentalAgreement[] @relation("LandlordRentals")
-  bids            Bid[]
-  messagesSent    Message[]        @relation("SentMessages")
-  messagesReceived Message[]       @relation("ReceivedMessages")
-  notifications   Notification[]
-  reports         PropertyReport[] @relation("Reporter")
-  favorites       Favorite[]
-  solicitorComments SolicitorComment[]
+  id                String            @id @default(cuid())
+  email             String            @unique
+  name              String
+  role              String            // 'admin' | 'tenant' | 'landlord' | 'solicitor'
+  isVerified        Boolean           @default(false)
+  isActive          Boolean           @default(true)
+  isDeleted         Boolean           @default(false)
+  deletionReason    String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  properties        Property[]        @relation("LandlordProperties")
+  inspections       Inspection[]      @relation("TenantInspections")
+  receivedMessages  Message[]         @relation("ReceiverMessages")
+  sentMessages      Message[]         @relation("SenderMessages")
+  favorites         Favorite[]
+  reports           PropertyReport[]  @relation("Reporter")
+  notifications     Notification[]
 }
 
-// Property listing model
 model Property {
-  id              String           @id @default(uuid())
+  id              String           @id @default(cuid())
+  propertyCode    String           @unique
   title           String
   description     String
   location        String
   price           Float
-  type            String           // "apartment", "house", "villa", "studio"
-  bedrooms        String           // "1", "2", "3", "4+"
-  bathrooms       Int
-  images          String           // JSON string of image URLs
-  amenities       String           // JSON string of amenities list
+  type            String           // 'flat' | 'house' | 'self-contain' | 'mini-flat'
+  bedrooms        Int
+  images          String           // JSON string array
+  security        String           // JSON string array
+  parking         String           // JSON string array
+  outdoorSpace    String           // JSON string array
+  petPolicy       String           // 'allowed' | 'not_allowed' | 'case_by_case'
+  furnishing      String           // 'furnished' | 'unfurnished' | 'semi-furnished'
+  breakdownItems  String           // JSON string array (BreakdownItem)
   available       Boolean          @default(true)
-  featured        Boolean          @default(false)
-  landlordId      String
-  solicitorId     String?
-  propertyCode    String           @unique
-  viewCount       Int              @default(0)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
   isDeleted       Boolean          @default(false)
   deletionReason  String?
-
-  // Extended property details
-  powerSupply     String?          // JSON string
-  waterSupply     String?          // JSON string
-  nearbyAmenities String?          // JSON string
-  allowNegotiation Boolean         @default(false)
-  
-  // Relations
-  landlord        User             @relation("LandlordProperties", fields: [landlordId], references: [id])
-  solicitor       User?            @relation("SolicitorProperties", fields: [solicitorId], references: [id])
-  inspections     Inspection[]
-  rentals         RentalAgreement[]
-  bids            Bid[]
-  reports         PropertyReport[]
-  favorites       Favorite[]
-  screeningQuestions ScreeningQuestion[]
-
-  @@index([landlordId])
-  @@index([solicitorId])
-}
-
-model ScreeningQuestion {
-  id          String   @id @default(uuid())
-  propertyId  String
-  question    String
-  
-  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  
-  @@index([propertyId])
-}
-
-// Inspection request model
-model Inspection {
-  id              String           @id @default(uuid())
-  propertyId      String
-  tenantId        String
   landlordId      String
-  date            String
-  time            String
-  notes           String?
-  status          String           @default("pending") // "pending", "approved", "rejected", "completed"
+  landlord        User             @relation("LandlordProperties", fields: [landlordId], references: [id])
+  inspections     Inspection[]
+  messages        Message[]
+  favorites       Favorite[]
+  reports         PropertyReport[]
+  rentals         Rental[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  approvedAt      DateTime?
-  rejectedAt      DateTime?
-  screeningAnswers String?         // JSON string
-
-  // Relations
-  property        Property         @relation(fields: [propertyId], references: [id])
-  tenant          User             @relation("TenantInspections", fields: [tenantId], references: [id])
-  landlord        User             @relation("LandlordInspections", fields: [landlordId], references: [id])
-  comments        SolicitorComment[]
-
-  @@index([propertyId])
-  @@index([tenantId])
-  @@index([landlordId])
 }
 
-// Solicitor comments on inspections
-model SolicitorComment {
-  id              String    @id @default(uuid())
-  inspectionId    String
-  solicitorId     String
-  comment         String
-  createdAt       DateTime  @default(now())
-
-  inspection      Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  solicitor       User       @relation(fields: [solicitorId], references: [id])
-
-  @@index([inspectionId])
-  @@index([solicitorId])
-}
-
-// Rental Agreement model
-model RentalAgreement {
-  id              String           @id @default(uuid())
+model Inspection {
+  id              String           @id @id @default(cuid())
   propertyId      String
+  property        Property         @relation(fields: [propertyId], references: [id])
+  tenantId        String
+  tenant          User             @relation("TenantInspections", fields: [tenantId], references: [id])
+  status          String           @default("pending") // 'pending' | 'approved' | 'rejected'
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  solicitorComments SolicitorComment[]
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  content     String
+  isRead      Boolean   @default(false)
+  senderId    String
+  sender      User      @relation("SenderMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User      @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id])
+  rentalId    String?
+  rental      Rental?   @relation(fields: [rentalId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // 'inspection' | 'rental' | 'message' | 'system'
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Rental {
+  id              String    @id @default(cuid())
+  propertyId      String
+  property        Property  @relation(fields: [propertyId], references: [id])
   tenantId        String
   landlordId      String
+  status          String    @default("active") // 'active' | 'completed' | 'cancelled'
+  rentAmount      Float
   startDate       DateTime
   endDate         DateTime
-  amount          Float
-  status          String           @default("active") // "active", "expired", "terminated"
-  receiptNumber   String           @unique
-  agreementUrl    String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  // Relations
-  property        Property         @relation(fields: [propertyId], references: [id])
-  tenant          User             @relation("TenantRentals", fields: [tenantId], references: [id])
-  landlord        User             @relation("LandlordRentals", fields: [landlordId], references: [id])
-
-  @@index([propertyId])
-  @@index([tenantId])
-  @@index([landlordId])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  messages        Message[]
 }
 
-// Rent bids / negotiations
-model Bid {
-  id              String           @id @default(uuid())
-  propertyId      String
-  tenantId        String
-  amount          Float
-  status          String           @default("pending") // "pending", "accepted", "rejected"
-  createdAt       DateTime         @default(now())
-
-  // Relations
-  property        Property         @relation(fields: [propertyId], references: [id])
-  tenant          User             @relation(fields: [tenantId], references: [id])
-
-  @@index([propertyId])
-  @@index([tenantId])
-}
-
-// Messaging system
-model Message {
-  id              String           @id @default(uuid())
-  senderId        String
-  receiverId      String
-  content         String
-  propertyId      String?
-  rentalId        String?
-  isRead          Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-
-  // Relations
-  sender          User             @relation("SentMessages", fields: [senderId], references: [id])
-  receiver        User             @relation("ReceivedMessages", fields: [receiverId], references: [id])
-
-  @@index([senderId])
-  @@index([receiverId])
-}
-
-// Notifications
-model Notification {
-  id              String           @id @default(uuid())
-  userId          String
-  title           String
-  message         String
-  type            String           // "info", "success", "alert", "message"
-  read            Boolean          @default(false)
-  link            String?
-  createdAt       DateTime         @default(now())
-
-  // Relations
-  user            User             @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-}
-
-// Property Reports / Complaints
-model PropertyReport {
-  id              String           @id @default(uuid())
-  propertyId      String
-  reporterId      String
-  reason          String
-  description     String
-  status          String           @default("pending") // "pending", "reviewed", "resolved"
-  createdAt       DateTime         @default(now())
-
-  // Relations
-  property        Property         @relation(fields: [propertyId], references: [id])
-  reporter        User             @relation("Reporter", fields: [reporterId], references: [id])
-
-  @@index([propertyId])
-  @@index([reporterId])
-}
-
-// User Favorites
 model Favorite {
-  id              String           @id @default(uuid())
-  userId          String
-  propertyId      String
-  createdAt       DateTime         @default(now())
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
 
-  // Relations
-  user            User             @relation(fields: [userId], references: [id])
-  property        Property         @relation(fields: [propertyId], references: [id])
-
-  @@unique([userId, propertyId])
-  @@index([userId])
-  @@index([propertyId])
+  @@id([userId, propertyId])
 }
 
-// Platform Announcements
-model Announcement {
-  id              String           @id @default(uuid())
-  title           String
-  message         String
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
+model PropertyReport {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id])
+  reporterId  String
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id])
+  reason      String   // 'misleading' | 'unavailable' | 'scam' | 'other'
+  description String?
+  status      String   @default("pending") // 'pending' | 'reviewed' | 'resolved'
+  createdAt   DateTime @default(now())
 }
 
-// Platform settings (e.g., global fees)
-model SystemSettings {
-  id                  String   @id @default("singleton")
-  maintenanceMode     Boolean  @default(false)
-  defaultInspectionFee Float   @default(5000)
-  language            String   @default("en")
-  updatedAt           DateTime @updatedAt
-}
-
-// CMS Content model (FAQ, About, Terms)
 model SystemContent {
-  id        String   @id @default(uuid())
-  key       String   @unique // e.g., 'faq', 'aboutUs', 'terms'
-  content   String   // JSON string or long text
+  id        String   @id @default(cuid())
+  key       String   @unique // 'faq', 'aboutUs', 'terms'
+  content   String   // Stored as JSON string
   updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model SolicitorComment {
+  id            String   @id @default(cuid())
+  inspectionId  String
+  inspection    Inspection @relation(fields: [inspectionId], references: [id])
+  solicitorId   String
+  comment       String
+  createdAt     DateTime @default(now())
 }
